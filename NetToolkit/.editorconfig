@@ -1,0 +1,30 @@
+# 顶级 EditorConfig 文件
+root = true
+
+# 所有文件
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.cs]
+# 禁用未使用的类提示
+resharper_unused_type_global_highlighting=none
+
+# 禁用未使用的成员提示
+resharper_unused_member_global_highlighting=none
+
+# 禁用返回值未使用提示
+resharper_unused_method_return_value_global_highlighting=none
+
+#禁用成员函数可设置为private提示
+resharper_member_can_be_private_global_highlighting=none
+
+#禁用属性set没有使用提示
+resharper_auto_property_can_be_made_get_only_global_highlighting=none
+
+# 禁用未使用的函数提示
+resharper_unused_member_local_highlighting=none
