@@ -1,0 +1,45 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <PlatformTarget>x64</PlatformTarget>
+        <RootNamespace>LoveYuri</RootNamespace>
+        <AssemblyName>love-yuri</AssemblyName>
+        <Version>0.0.1</Version>
+        <Authors>love-yuri</Authors>
+        <Description>基于.net8.0构建的常用工具库</Description>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageId>love-yuri.NetToolkit</PackageId>
+        <RepositoryUrl>https://github.com/love-yuri/NetToolkit</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageProjectUrl>https://github.com/love-yuri/NetToolkit</PackageProjectUrl>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Title>我的恋情，宛如孤岛之花。不为人知的绽放，不为人知的凋零</Title>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="../LICENSE" Pack="true" PackagePath="" />
+        <None Include="../README.md" Pack="true" PackagePath="" />
+    </ItemGroup>
+
+    <!-- 依赖 -->
+    <ItemGroup>
+        <!-- di依赖注入 -->
+        <PackageReference Include="JetBrains.Annotations" Version="2025.2.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.1" PrivateAssets="none" />
+        <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.1" PrivateAssets="none" />
+
+        <!-- sqlite -->
+        <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.7" />
+        <PackageReference Include="Dapper" Version="2.1.66" />
+    </ItemGroup>
+    <ItemGroup>
+        <None Include="runtimes\win-x64\native\LoveYuri.dll" Pack="true" PackagePath="runtimes/win-x64/native" />
+    </ItemGroup>
+
+</Project>

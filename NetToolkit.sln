@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetToolkit", "NetToolkit/NetToolkit.csproj", "{3EFAC043-673A-4696-BAA9-54CF3388F6E6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetToolkitExamples", "NetToolkitExamples\NetToolkitExamples.csproj", "{CCFA6234-28E7-4AE6-8507-AFB2B3B29C48}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3EFAC043-673A-4696-BAA9-54CF3388F6E6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3EFAC043-673A-4696-BAA9-54CF3388F6E6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3EFAC043-673A-4696-BAA9-54CF3388F6E6}.Debug|Any CPU.ActiveCfg = Release|Any CPU
+		{3EFAC043-673A-4696-BAA9-54CF3388F6E6}.Debug|Any CPU.Build.0 = Release|Any CPU
+		{CCFA6234-28E7-4AE6-8507-AFB2B3B29C48}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CCFA6234-28E7-4AE6-8507-AFB2B3B29C48}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CCFA6234-28E7-4AE6-8507-AFB2B3B29C48}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CCFA6234-28E7-4AE6-8507-AFB2B3B29C48}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
