@@ -1,15 +1,12 @@
-namespace LoveYuri.Core.Sql;
-
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+
+namespace LoveYuri.Core.Sqlite;
 
 // 逻辑操作符 默认And
 public enum LogicalOperatorType {
     And = 0,// 与
-    Or = 1, // 或
+    Or = 1 // 或
 }
 
 /// <summary>

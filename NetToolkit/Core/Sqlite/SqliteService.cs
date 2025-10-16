@@ -1,12 +1,11 @@
-using System.Reflection;
 using System.Collections.Concurrent;
+using System.Reflection;
 using Dapper;
 using Microsoft.Data.Sqlite;
 
-namespace LoveYuri.Core.Sql;
+namespace LoveYuri.Core.Sqlite;
 
-internal static class SqliteService
-{
+public static class SqliteService {
     // 缓存表信息以避免重复反射
     private static readonly ConcurrentDictionary<Type, (string DataSource, string TableName)> TableInfoCache = new();
 

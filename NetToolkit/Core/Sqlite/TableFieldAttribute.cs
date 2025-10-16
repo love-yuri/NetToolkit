@@ -1,4 +1,4 @@
-namespace LoveYuri.Core.Sql;
+namespace LoveYuri.Core.Sqlite;
 
 [AttributeUsage(AttributeTargets.Property)]
 public class TableFieldAttribute(string name) : Attribute {

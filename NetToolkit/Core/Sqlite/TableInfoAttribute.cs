@@ -1,6 +1,4 @@
-namespace LoveYuri.Core.Sql;
-
-using System;
+namespace LoveYuri.Core.Sqlite;
 
 [AttributeUsage(AttributeTargets.Class)]
 public class TableInfoAttribute(string dataSource, string tableName) : Attribute {
