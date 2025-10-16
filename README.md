@@ -5,6 +5,10 @@
 
 ## 更新日志
 
+### 1.0.1
+1. 移除JetBrains依赖并更新程序集名称
+2. 修改sqlite工具到Sqlite目录
+
 ### 1.0.0
 1. 正式发布1.0正式版，大部分功能迁移自WpfCommon
 2. 支持字符串格式化成常用数据类型: ToDouble, TryToDouble ...

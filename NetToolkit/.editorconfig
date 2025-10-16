@@ -28,3 +28,6 @@ resharper_auto_property_can_be_made_get_only_global_highlighting=none
 
 # 禁用未使用的函数提示
 resharper_unused_member_local_highlighting=none
+
+# 禁用类从未实例化提示
+resharper_class_never_instantiated_global_highlighting=none
