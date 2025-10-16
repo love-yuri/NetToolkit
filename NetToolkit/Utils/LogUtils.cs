@@ -52,7 +52,7 @@ public static partial class Log {
     /// <param name="appendMode">追加模式，默认同时写入控制台和文件</param>
     public static void AppendLogToFile(string file, WriteMode appendMode = WriteMode.WriteInConsoleAndFile)
     {
-        SetWriteMode((byte)WriteMode.WriteInConsoleAndFile);
+        SetWriteMode((byte)appendMode);
         SetLogFilePath(file);
     }
 
