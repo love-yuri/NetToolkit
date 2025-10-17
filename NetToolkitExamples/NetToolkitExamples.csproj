@@ -9,13 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-              <ProjectReference Include="..\NetToolkit\NetToolkit.csproj" />
-
-        <!--      <PackageReference Include="love-yuri.NetToolkit" Version="1.0.1" />-->
-    </ItemGroup>
-
-    <ItemGroup>
-<!--        <PackageReference Include="love-yuri.Logger" Version="1.0.0"/>-->
+        <ProjectReference Include="..\NetToolkit\NetToolkit.csproj" />
     </ItemGroup>
 
 </Project>
