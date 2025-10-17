@@ -128,6 +128,8 @@ private:
     // 启用Windows控制台的ANSI转义序列支持
     static bool console_initialized = false;
     if (!console_initialized) {
+      // 设置无缓冲模式
+      std::cout.setf(std::ios::unitbuf);
       // 设置编码
       SetConsoleOutputCP(CP_UTF8);
 

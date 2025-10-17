@@ -7,7 +7,7 @@
         <PlatformTarget>x64</PlatformTarget>
         <RootNamespace>LoveYuri</RootNamespace>
         <AssemblyName>love-yuri.Logger</AssemblyName>
-        <Version>1.0.0</Version>
+        <Version>1.0.1</Version>
         <Authors>love-yuri</Authors>
         <Description>基于.net8.0的日志库</Description>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
@@ -28,7 +28,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None CopyToOutputDirectory="Always" Include="runtimes\win-x64\native\YuriLogger.dll" Pack="true" PackagePath="runtimes/win-x64/native" />
+        <None Include="runtimes\win-x64\native\YuriLogger.dll" Pack="true" PackagePath="runtimes/win-x64/native" />
     </ItemGroup>
 
 </Project>
