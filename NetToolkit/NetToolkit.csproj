@@ -24,7 +24,7 @@
 
     <ItemGroup>
         <None Include="../LICENSE" Pack="true" PackagePath="" />
-        <None Include="../README.md" Pack="true" PackagePath="" />
+        <None Include="README.md" Pack="true" PackagePath="" />
     </ItemGroup>
 
     <!-- 依赖 -->
@@ -39,7 +39,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <None Include="runtimes\win-x64\native\LoveYuri.dll" Pack="true" PackagePath="runtimes/win-x64/native" />
+      <ProjectReference Include="..\Logger\Logger.csproj" />
     </ItemGroup>
 
 </Project>
