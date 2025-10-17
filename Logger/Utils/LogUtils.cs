@@ -17,11 +17,13 @@ public enum WriteMode : byte {
 /// 简单日志类
 /// </summary>
 public static partial class Log {
+    private const string DllPath = "YuriLogger.dll";
+
     /// <summary>
     /// 打印日志 info级别
     /// </summary>
     /// <param name="msg"></param>
-    [LibraryImport("LoveYuri.dll", StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(DllPath, StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     public static partial void Info(string msg);
 
@@ -29,19 +31,19 @@ public static partial class Log {
     /// 输出到标准错误流
     /// </summary>
     /// <param name="msg"></param>
-    [LibraryImport("LoveYuri.dll", StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(DllPath, StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     public static partial void Error(string msg);
 
-    [LibraryImport("LoveYuri.dll", StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(DllPath, StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     public static partial void Warn(string msg);
 
-    [LibraryImport("LoveYuri.dll", StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(DllPath, StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     private static partial void SetLogFilePath(string msg);
 
-    [LibraryImport("LoveYuri.dll", StringMarshalling = StringMarshalling.Utf8)]
+    [LibraryImport(DllPath, StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     private static partial void SetWriteMode(byte mode);
 
