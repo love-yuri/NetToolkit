@@ -4,6 +4,11 @@
 基于 .net8 提供常用的工具
 
 ## 更新日志
+### 1.0.3
+1. 修改DiService类为ServiceContainer
+2. 升级日志库版本为1.0.2
+
+## 更新日志
 ### 1.0.2
 1. 移除日志相关部分到love-yuri.Logger包中
 
