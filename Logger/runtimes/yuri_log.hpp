@@ -1,12 +1,13 @@
 /*
  * @Author: love-yuri yuri2078170658@gmail.com
  * @Date: 2023-09-28 08:49:03
- * @LastEditTime: 2025-10-14 15:43:31
+ * @LastEditTime: 2025-10-21 15:52:30
  * @Description: 高性能的日志库基于c++11，支持更多类型和更美观的输出，单文件 13万条/s 单控制台 5万/s
  */
 
 #pragma once
 
+#include <atomic>
 #include <fstream>
 #include <iostream>
 #include <mutex>
@@ -41,21 +42,30 @@ public:
 
   enum class LogLevel {
     Info,
-    Warning,
     Debug,
+    Warning,
     Error
   };
 
-  constexpr static std::array<const char*, 4> levelStrings = {
-    "INFO", "WARN", "DEBUG", "ERROR"
+  constexpr static std::array<const char *, 4> levelStrings = {
+    "INFO", "DEBUG", "WARN", "ERROR"
   };
 
   /**
    * 控制设备的写入模式
    * @return 写入模式引用
    */
-  static uint8_t &writeMode() {
-    static uint8_t write_mode = WriteInConsole;
+  static std::atomic<uint32_t> &logLevelFilter() {
+    static std::atomic<uint32_t> level_filter = static_cast<uint32_t>(LogLevel::Info);
+    return level_filter;
+  }
+
+  /**
+   * 控制设备的写入模式
+   * @return 写入模式引用
+   */
+  static std::atomic<uint32_t> &writeMode() {
+    static std::atomic<uint32_t> write_mode = WriteInConsole;
     return write_mode;
   }
 
@@ -64,18 +74,15 @@ public:
    * @return 设置文件路径
    */
   static std::string &filePath() {
-    static std::string path{};
-    if (path.empty()) {
-      path = "log.txt";
-    }
+    static std::string path = "log.txt";
     return path;
   }
 
   /**
    * @brief 静态成员函数，用于控制是否使用std::cerr输出错误日志
    */
-  static bool &useStdError() {
-    static bool use_std_cerr = false;
+  static std::atomic_bool &useStdError() {
+    static std::atomic_bool use_std_cerr = false;
     return use_std_cerr;
   }
 
@@ -124,28 +131,22 @@ private:
       levelStrings[static_cast<unsigned>(level)]
     );
 
-#ifdef _WIN32
     // 启用Windows控制台的ANSI转义序列支持
-    static bool console_initialized = false;
-    if (!console_initialized) {
-      // 设置无缓冲模式
-      std::cout.setf(std::ios::unitbuf);
+    static std::once_flag once_flag;
+    std::call_once(once_flag, [] {
+      #ifdef _WIN32
       // 设置编码
       SetConsoleOutputCP(CP_UTF8);
-
+      SetConsoleCP(CP_UTF8);
       const auto hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
       DWORD mode;
       if (GetConsoleMode(hConsole, &mode)) {
         SetConsoleMode(hConsole, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
       }
-      console_initialized = true;
-    }
-#endif
-    return std::string { buf };
-  }
+      #endif
+    });
 
-  static void logResult(const std::string &msg, std::ostream &ostream) {
-    ostream << msg << std::endl;
+    return std::string { buf };
   }
 
   // 格式化容器的辅助函数
@@ -193,6 +194,10 @@ public:
   }
 
   ~Log() {
+    if (static_cast<uint32_t>(level) < logLevelFilter()) {
+      return;
+    }
+
     const std::string prefix = formatMessage();
 
     std::lock_guard<std::mutex> lock(getMutex());
@@ -214,9 +219,9 @@ public:
       }
       ostream << prefix;
       if (level != LogLevel::Error) {
-        ostream << "\x1b[0m" << ost.str() << '\n';
+        ostream << "\x1b[0m" << ost.str() << std::endl;
       } else {
-        ostream << ost.str() << '\n';
+        ostream << ost.str() << std::endl;
       }
     }
 
@@ -319,4 +324,12 @@ public:
 
 #ifndef yerror
 #define yerror ::yuri::Log(__func__, __LINE__, ::yuri::Log::LogLevel::Error)
+#endif
+
+#ifndef ywarn
+#define ywarn ::yuri::Log(__func__, __LINE__, ::yuri::Log::LogLevel::Warning)
+#endif
+
+#ifndef ydebug
+#define ydebug ::yuri::Log(__func__, __LINE__, ::yuri::Log::LogLevel::Debug)
 #endif

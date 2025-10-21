@@ -17,6 +17,10 @@ void SetWriteMode(const unsigned char mode) {
   yuri::Log::writeMode() = mode;
 }
 
+void SetLogFilter(const unsigned char mode) {
+  yuri::Log::logLevelFilter() = mode;
+}
+
 void Error(const char *msg) {
   yuri::Log(yuri::Log::LogLevel::Error) << msg;
 }
