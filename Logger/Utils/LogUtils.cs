@@ -17,6 +17,14 @@ public enum WriteMode : byte {
 /// 简单日志类
 /// </summary>
 public static partial class Log {
+
+    public enum LogLevel : uint {
+        Info = 0,
+        Debug = 1,
+        Warning = 2,
+        Error = 3
+    }
+
     private const string DllPath = "YuriLogger.dll";
 
     /// <summary>
@@ -46,6 +54,19 @@ public static partial class Log {
     [LibraryImport(DllPath, StringMarshalling = StringMarshalling.Utf8)]
     [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
     private static partial void SetWriteMode(byte mode);
+
+    [LibraryImport(DllPath, StringMarshalling = StringMarshalling.Utf8)]
+    [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvCdecl)])]
+    private static partial void SetLogFilter(byte mode);
+
+    /// <summary>
+    /// 过滤日志，仅显示level及以上的日志
+    /// </summary>
+    /// <param name="level"></param>
+    public static void FilterLog(LogLevel level)
+    {
+        SetLogFilter((byte)level);
+    }
 
     /// <summary>
     /// 将日志添加到文件
