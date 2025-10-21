@@ -1,7 +1,7 @@
 /*
  * @Author: love-yuri yuri2078170658@gmail.com
  * @Date: 2023-09-28 08:49:03
- * @LastEditTime: 2025-10-21 15:52:30
+ * @LastEditTime: 2025-10-21 16:51:39
  * @Description: 高性能的日志库基于c++11，支持更多类型和更美观的输出，单文件 13万条/s 单控制台 5万/s
  */
 
@@ -221,7 +221,7 @@ public:
       if (level != LogLevel::Error) {
         ostream << "\x1b[0m" << ost.str() << std::endl;
       } else {
-        ostream << ost.str() << std::endl;
+        ostream << ost.str() << "\x1b[0m" << std::endl;
       }
     }
 
