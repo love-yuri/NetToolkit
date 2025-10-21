@@ -7,7 +7,7 @@ namespace LoveYuri.Core.Service;
 /// <summary>
 /// 全局di服务
 /// </summary>
-public class DiService: IAsyncDisposable {
+public class ServiceContainer: IAsyncDisposable {
     private static IHost? _host;
 
     /// <summary>
@@ -50,7 +50,7 @@ public class DiService: IAsyncDisposable {
         return ServiceProvider?.GetService<T>();
     }
 
-    private DiService()
+    private ServiceContainer()
     {
         if (_host == null) {
             throw new InvalidOperationException("DI服务尚未初始化");
@@ -63,7 +63,7 @@ public class DiService: IAsyncDisposable {
     /// 注册DiService
     /// </summary>
     /// <param name="register">服务注册函数</param>
-    public static DiService RegisterDiService(Action<IServiceCollection> register) {
+    public static ServiceContainer RegisterDiService(Action<IServiceCollection> register) {
         if (_host != null) {
             throw new InvalidOperationException("DI服务已经初始化");
         }
@@ -76,7 +76,7 @@ public class DiService: IAsyncDisposable {
                 register.Invoke(service);
             }).Build();
 
-        return new DiService();
+        return new ServiceContainer();
     }
 
 
@@ -96,7 +96,7 @@ public class DiService: IAsyncDisposable {
         return ValueTask.CompletedTask;
     }
 
-    ~DiService()
+    ~ServiceContainer()
     {
         ReleaseUnmanagedResources();
     }
