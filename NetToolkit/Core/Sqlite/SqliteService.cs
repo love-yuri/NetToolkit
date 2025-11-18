@@ -1,10 +1,15 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using Dapper;
+using LoveYuri.Core.Sqlite.Attribute;
 using Microsoft.Data.Sqlite;
 
 namespace LoveYuri.Core.Sqlite;
 
+/// <summary>
+/// 本地sqlite服务
+/// 表信息依赖实体类注解实现
+/// </summary>
 public static class SqliteService {
     // 缓存表信息以避免重复反射
     private static readonly ConcurrentDictionary<Type, (string DataSource, string TableName)> TableInfoCache = new();
@@ -14,6 +19,9 @@ public static class SqliteService {
 
     // 缓存SQL语句以避免重复构建
     private static readonly ConcurrentDictionary<Type, string> InsertSqlCache = new();
+
+    // 缓存SQL语句以避免重复构建
+    private static readonly ConcurrentDictionary<Type, string> ReplaceSqlCache = new();
 
     /// <summary>
     /// 获取表信息（带缓存）
@@ -50,16 +58,16 @@ public static class SqliteService {
     /// </summary>
     /// <param name="dataSource"></param>
     /// <returns></returns>
-    private static SqliteConnection CreateConnection(string dataSource)
+    public static SqliteConnection CreateConnection(string dataSource)
     {
-        var connectionString = $"DataSource={dataSource};Cache=Shared;";
+        var connectionString = $"Data Source={dataSource};Cache=Shared;";
         return new SqliteConnection(connectionString);
     }
 
     /// <summary>
     /// 查询所有数据
     /// </summary>
-    public static List<T> Select<T>(this QueryWrapper<T> queryWrapper) where T : class, new()
+    public static List<T> Select<T>(this QueryWrapper<T> queryWrapper)
     {
         (string dataSource, string tableName) = GetTableInfo<T>();
         var sql = $"SELECT * FROM {tableName} {queryWrapper.BuildSql()}";
@@ -71,7 +79,7 @@ public static class SqliteService {
     /// <summary>
     /// 查询所有数据（异步）
     /// </summary>
-    public static async Task<List<T>> SelectAsync<T>(this QueryWrapper<T> queryWrapper) where T : class, new()
+    public static async Task<List<T>> SelectAsync<T>(this QueryWrapper<T> queryWrapper)
     {
         (string dataSource, string tableName) = GetTableInfo<T>();
         var sql = $"SELECT * FROM {tableName} {queryWrapper.BuildSql()}";
@@ -81,10 +89,21 @@ public static class SqliteService {
         return result.AsList();
     }
 
+    public static List<T> Union<T>(this (QueryWrapper<T> left, QueryWrapper<T> right) queryWrapper)
+    {
+        (string dataSource, string tableName) = GetTableInfo<T>();
+        var leftSql = $"select * from {tableName} {queryWrapper.left.BuildSql()}";
+        var rightSql = $"select * from {tableName} {queryWrapper.right.BuildSql()}";
+
+        var sql = $"select * from ({leftSql}) union select * from ({rightSql})";
+        using var connection = CreateConnection(dataSource);
+        return connection.Query<T>(sql, queryWrapper.left.Values).AsList();
+    }
+
     /// <summary>
     /// 查询单个数据
     /// </summary>
-    public static T? SelectOne<T>(this QueryWrapper<T> queryWrapper) where T : class, new()
+    public static T? SelectOne<T>(this QueryWrapper<T> queryWrapper)
     {
         (string dataSource, string tableName) = GetTableInfo<T>();
         var sql = $"SELECT * FROM {tableName} {queryWrapper.BuildSql()} LIMIT 1";
@@ -96,7 +115,7 @@ public static class SqliteService {
     /// <summary>
     /// 查询单个数据（异步）
     /// </summary>
-    public static async Task<T?> SelectOneAsync<T>(this QueryWrapper<T> queryWrapper) where T : class, new()
+    public static async Task<T?> SelectOneAsync<T>(this QueryWrapper<T> queryWrapper)
     {
         (string dataSource, string tableName) = GetTableInfo<T>();
         var sql = $"SELECT * FROM {tableName} {queryWrapper.BuildSql()} LIMIT 1";
@@ -108,7 +127,7 @@ public static class SqliteService {
     /// <summary>
     /// 查询数量
     /// </summary>
-    public static int Count<T>(this QueryWrapper<T> queryWrapper) where T : class, new()
+    public static int Count<T>(this QueryWrapper<T> queryWrapper)
     {
         (string dataSource, string tableName) = GetTableInfo<T>();
         var sql = $"SELECT COUNT(*) FROM {tableName} {queryWrapper.BuildSql(BuildSqlType.Count)}";
@@ -120,7 +139,7 @@ public static class SqliteService {
     /// <summary>
     /// 查询数量（异步）
     /// </summary>
-    public static async Task<int> CountAsync<T>(this QueryWrapper<T> queryWrapper) where T : class, new()
+    public static async Task<int> CountAsync<T>(this QueryWrapper<T> queryWrapper)
     {
         (string dataSource, string tableName) = GetTableInfo<T>();
         var sql = $"SELECT COUNT(*) FROM {tableName} {queryWrapper.BuildSql(BuildSqlType.Count)}";
@@ -132,7 +151,7 @@ public static class SqliteService {
     /// <summary>
     /// 删除
     /// </summary>
-    public static int Delete<T>(this QueryWrapper<T> queryWrapper) where T : class, new()
+    public static int Delete<T>(this QueryWrapper<T> queryWrapper)
     {
         (string dataSource, string tableName) = GetTableInfo<T>();
         var sql = $"DELETE FROM {tableName} {queryWrapper.BuildSql(BuildSqlType.Delete)}";
@@ -144,7 +163,7 @@ public static class SqliteService {
     /// <summary>
     /// 删除（异步）
     /// </summary>
-    public static async Task<int> DeleteAsync<T>(this QueryWrapper<T> queryWrapper) where T : class, new()
+    public static async Task<int> DeleteAsync<T>(this QueryWrapper<T> queryWrapper)
     {
         (string dataSource, string tableName) = GetTableInfo<T>();
         var sql = $"DELETE FROM {tableName} {queryWrapper.BuildSql(BuildSqlType.Delete)}";
@@ -156,7 +175,7 @@ public static class SqliteService {
     /// <summary>
     /// 更新
     /// </summary>
-    public static int Update<T>(this QueryWrapper<T> queryWrapper) where T : class, new()
+    public static int Update<T>(this QueryWrapper<T> queryWrapper)
     {
         if (queryWrapper is not UpdateQueryWrapper<T>)
         {
@@ -173,10 +192,9 @@ public static class SqliteService {
     /// <summary>
     /// 更新（异步）
     /// </summary>
-    public static async Task<int> UpdateAsync<T>(this QueryWrapper<T> queryWrapper) where T : class, new()
+    public static async Task<int> UpdateAsync<T>(this QueryWrapper<T> queryWrapper)
     {
-        if (queryWrapper is not UpdateQueryWrapper<T>)
-        {
+        if (queryWrapper is not UpdateQueryWrapper<T>) {
             throw new ArgumentException("更新操作请使用 UpdateQueryWrapper", nameof(queryWrapper));
         }
 
@@ -184,46 +202,41 @@ public static class SqliteService {
         var sql = $"UPDATE {tableName} SET {queryWrapper.BuildSql(BuildSqlType.Update)}";
 
         await using var connection = CreateConnection(dataSource);
+
         return await connection.ExecuteAsync(sql, queryWrapper.Values);
     }
 
     /// <summary>
-    /// 插入数据（优化版本）
+    /// 插入数据或者替换数据 - 需要主键
     /// </summary>
-    /// <param name="list">待插入的数据</param>
-    public static int Insert<T>(this IEnumerable<T> list) where T : class
+    /// <param name="entity">待插入的数据</param>
+    public static int Replace<T>(this T entity)
     {
-        var dataList = list as T[] ?? list.ToArray();
-        if (dataList.Length == 0) return 0;
-
         (string dataSource, string tableName) = GetTableInfo<T>();
-        string sql = GetInsertSql<T>(tableName);
+        string sql = GetReplaceSql<T>(tableName);
 
         using var connection = CreateConnection(dataSource);
-        return connection.Execute(sql, dataList);
+        return connection.Execute(sql, entity);
     }
 
     /// <summary>
-    /// 插入数据（异步优化版本）
+    /// 插入数据或者替换数据 - 需要主键
     /// </summary>
-    /// <param name="list">待插入的数据</param>
-    public static async Task<int> InsertAsync<T>(this IEnumerable<T> list) where T : class
+    /// <param name="entity">待插入的数据</param>
+    public static async Task<int> ReplaceAsync<T>(this T entity)
     {
-        var dataList = list as T[] ?? list.ToArray();
-        if (dataList.Length == 0) return 0;
-
         (string dataSource, string tableName) = GetTableInfo<T>();
-        string sql = GetInsertSql<T>(tableName);
+        string sql = GetReplaceSql<T>(tableName);
 
         await using var connection = CreateConnection(dataSource);
-        return await connection.ExecuteAsync(sql, dataList);
+        return await connection.ExecuteAsync(sql, entity);
     }
 
     /// <summary>
     /// 插入单个对象
     /// </summary>
     /// <param name="entity">待插入的对象</param>
-    public static int Insert<T>(this T entity) where T : class
+    public static int Insert<T>(this T entity)
     {
         (string dataSource, string tableName) = GetTableInfo<T>();
         string sql = GetInsertSql<T>(tableName);
@@ -236,7 +249,7 @@ public static class SqliteService {
     /// 插入单个对象（异步）
     /// </summary>
     /// <param name="entity">待插入的对象</param>
-    public static async Task<int> InsertAsync<T>(this T entity) where T : class
+    public static async Task<int> InsertAsync<T>(this T entity)
     {
         (string dataSource, string tableName) = GetTableInfo<T>();
         string sql = GetInsertSql<T>(tableName);
@@ -250,7 +263,7 @@ public static class SqliteService {
     /// </summary>
     /// <param name="list">待插入的数据</param>
     /// <param name="batchSize">批次大小</param>
-    public static int InsertBatch<T>(this IEnumerable<T> list, int batchSize = 1000) where T : class
+    public static int InsertBatch<T>(this IEnumerable<T> list, int batchSize = 1000)
     {
         var dataList = list as T[] ?? list.ToArray();
         if (dataList.Length == 0) return 0;
@@ -260,12 +273,11 @@ public static class SqliteService {
         var totalAffected = 0;
 
         using var connection = CreateConnection(dataSource);
-        connection.Open();
         using var transaction = connection.BeginTransaction();
 
         try {
             for (var i = 0; i < dataList.Length; i += batchSize) {
-                var batch = dataList.Skip(i).Take(batchSize);
+                var batch = dataList[i..Math.Min(i + batchSize, dataList.Length)];
                 totalAffected += connection.Execute(sql, batch, transaction);
             }
 
@@ -282,7 +294,7 @@ public static class SqliteService {
     /// </summary>
     /// <param name="list">待插入的数据</param>
     /// <param name="batchSize">批次大小</param>
-    public static async Task<int> InsertBatchAsync<T>(this IEnumerable<T> list, int batchSize = 1000) where T : class
+    public static async Task<int> InsertBatchAsync<T>(this IEnumerable<T> list, int batchSize = 1000)
     {
         var dataList = list as T[] ?? list.ToArray();
         if (dataList.Length == 0) return 0;
@@ -326,5 +338,50 @@ public static class SqliteService {
 
             return $"INSERT INTO {tableName} ({fieldsStr}) VALUES ({valuesStr})";
         });
+    }
+
+    /// <summary>
+    /// 获取替换SQL（带缓存）
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="tableName"></param>
+    /// <returns></returns>
+    private static string GetReplaceSql<T>(string tableName)
+    {
+        return ReplaceSqlCache.GetOrAdd(typeof(T), _ => {
+            var properties = GetProperties<T>();
+            string[] fields = properties.Select(p => p.Name).ToArray();
+
+            string fieldsStr = string.Join(", ", fields);
+            string valuesStr = string.Join(", ", fields.Select(f => $"@{f}"));
+
+            return $"INSERT OR REPLACE INTO {tableName} ({fieldsStr}) VALUES ({valuesStr})";
+        });
+    }
+
+    /// <summary>
+    /// 直接执行sql
+    /// </summary>
+    /// <param name="sql">sql语句</param>
+    /// <param name="param">参数</param>
+    /// <typeparam name="T">目标类型</typeparam>
+    public static List<T> Execute<T>(string sql, object? param = null)
+    {
+        (string dataSource, _) = GetTableInfo<T>();
+        using var connection = CreateConnection(dataSource);
+        return connection.Query<T>(sql, param).AsList();
+    }
+
+    /// <summary>
+    /// 直接执行sql-异步方法
+    /// </summary>
+    /// <param name="sql">sql语句</param>
+    /// <param name="param">参数</param>
+    /// <typeparam name="T">目标类型</typeparam>
+    public static async Task<List<T>> ExecuteAsync<T>(string sql, object? param = null)
+    {
+        (string dataSource, _) = GetTableInfo<T>();
+        await using var connection = CreateConnection(dataSource);
+        return (await connection.QueryAsync<T>(sql, param)).AsList();
     }
 }

@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
 using System.Text;
+using LoveYuri.Utils;
 
 namespace LoveYuri.Core.Sqlite;
 
@@ -24,7 +25,7 @@ public enum BuildSqlType {
 /// 泛型查询构造器，提供强类型的链式查询条件构建
 /// </summary>
 /// <typeparam name="T">实体类型，必须实现 IMessage 接口</typeparam>
-public class QueryWrapper<T> where T : new()
+public class QueryWrapper<T>
 {
     protected readonly StringBuilder ConditionBuilder = new();
     private readonly StringBuilder orderByBuilder = new();
@@ -39,6 +40,22 @@ public class QueryWrapper<T> where T : new()
     /// limit sql
     /// </summary>
     private string LimitSql { get; set; } = string.Empty;
+
+    /// <summary>
+    /// 创建 QueryWrapper 实例
+    /// </summary>
+    /// <returns>新的 QueryWrapper 实例</returns>
+    public static QueryWrapper<T> NewQuery => new() {
+        Values = new Dictionary<string, object>()
+    };
+
+    /// <summary>
+    /// 创建 UpdateQueryWrapper 实例
+    /// </summary>
+    /// <returns>新的 QueryWrapper 实例</returns>
+    public static UpdateQueryWrapper<T> NewUpdate => new() {
+        Values = new Dictionary<string, object>()
+    };
 
     /// <summary>
     /// 构建完整sql语句
@@ -63,12 +80,20 @@ public class QueryWrapper<T> where T : new()
     }
 
     /// <summary>
-    /// 创建 QueryWrapper 实例
+    /// 在缓存里获取字段名
     /// </summary>
-    /// <returns>新的 QueryWrapper 实例</returns>
-    public static QueryWrapper<T> Query => new() {
-        Values = new Dictionary<string, object>()
-    };
+    /// <param name="expression"></param>
+    /// <typeparam name="TProperty"></typeparam>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    protected static string GetFieldNameCached<TProperty>(Expression<Func<T, TProperty>> expression)
+    {
+        return expression.Body switch {
+            MemberExpression memberExpr => memberExpr.Member.Name,
+            UnaryExpression { Operand: MemberExpression memberExpr } => memberExpr.Member.Name,
+            _ => throw new ArgumentException("表达式必须是简单的属性访问，如：p => p.PropertyName", nameof(expression))
+        };
+    }
 
     /// <summary>
     /// 从 Lambda 表达式中获取属性名
@@ -78,12 +103,7 @@ public class QueryWrapper<T> where T : new()
     /// <exception cref="ArgumentException">当表达式不是有效的属性访问时抛出</exception>
     protected static string GetFieldName<TProperty>(Expression<Func<T, TProperty>> expression)
     {
-        return expression.Body switch
-        {
-            MemberExpression memberExpr => memberExpr.Member.Name,
-            UnaryExpression { Operand: MemberExpression memberExpr } => memberExpr.Member.Name,
-            _ => throw new ArgumentException("表达式必须是简单的属性访问，如：p => p.PropertyName", nameof(expression))
-        };
+        return GetFieldNameCached(expression);
     }
 
     /// <summary>
@@ -479,6 +499,27 @@ public class QueryWrapper<T> where T : new()
     }
 
     /// <summary>
+    /// union查询（用括号包裹一组条件）
+    /// </summary>
+    /// <param name="action">union的条件构建动作</param>
+    /// <example>
+    /// <code>
+    /// wrapper.Eq(x => x.Status, "active")
+    ///        .Union(sub => sub.Eq(x => x.Type, "A").Or().Eq(x => x.Type, "B"));
+    /// </code>
+    /// 生成的SQL：WHERE Status = @Status AND (Type = @Type OR Type = @Type_1)
+    /// </example>
+    public (QueryWrapper<T>, QueryWrapper<T>) Union(Action<QueryWrapper<T>> action)
+    {
+        var subWrapper = new QueryWrapper<T> {
+            Values = Values
+        };
+        action.Invoke(subWrapper);
+
+        return (this, subWrapper);
+    }
+
+    /// <summary>
     /// OR 逻辑操作符的便捷方法
     /// </summary>
     /// <returns>返回当前 QueryWrapper 实例</returns>
@@ -505,9 +546,9 @@ public class QueryWrapper<T> where T : new()
     /// <example>
     /// <code>
     /// wrapper.OrderBy(x => x.CreateTime)
-    ///        .OrderBy(x => x.Id)  // 多字段排序
+    ///        .OrderBy(x => x.Age)  // 多字段排序
     /// </code>
-    /// 生成的SQL：ORDER BY CreateTime ASC, Id ASC
+    /// 生成的SQL：ORDER BY CreateTime ASC, Age ASC
     /// </example>
     public QueryWrapper<T> OrderBy<TProperty>(Expression<Func<T, TProperty>> expression)
     {
@@ -580,63 +621,4 @@ public class QueryWrapper<T> where T : new()
     }
 
     #endregion
-
-}
-
-/// <summary>
-/// 更新条件查询
-/// </summary>
-public class UpdateQueryWrapper<T>: QueryWrapper<T> where T : new() {
-
-    /// <summary>
-    /// 构建set sql
-    /// </summary>
-    private readonly StringBuilder setClauseBuilder = new();
-
-    /// <summary>
-    /// 更新 某个字段
-    /// </summary>
-    /// <param name="expression">字段名</param>
-    /// <param name="value">字段值</param>
-    /// <example>
-    /// <code>
-    /// xxx.Set(p.ComId, 1)
-    /// </code>
-    /// 生成的SQL类似：set ComId = 1
-    /// </example>
-    public UpdateQueryWrapper<T> Set<TProperty>(Expression<Func<T, TProperty>> expression, TProperty value)
-    {
-        string fieldName = GetFieldName(expression);
-        string key = GenerateUniqueParamKey(fieldName);
-
-        if (setClauseBuilder.Length != 0) {
-            setClauseBuilder.Append(',');
-        }
-
-        setClauseBuilder.Append($"{fieldName} = {key}");
-        Values[key] = value!;
-
-        return this;
-    }
-
-    public new static UpdateQueryWrapper<T> Query => new() {
-        Values = new Dictionary<string, object>()
-    };
-
-    public override string BuildSql(BuildSqlType type = BuildSqlType.Select)
-    {
-        var stringBuilder = new StringBuilder();
-        if (setClauseBuilder.Length == 0) {
-            throw new Exception("update语句必须要set!");
-        }
-        stringBuilder.Append(setClauseBuilder);
-        stringBuilder.Append(' ');
-
-        if (ConditionBuilder.Length > 0) {
-            stringBuilder.Append("where (");
-            stringBuilder.Append(ConditionBuilder);
-            stringBuilder.Append(')');
-        }
-        return stringBuilder.ToString();
-    }
 }
