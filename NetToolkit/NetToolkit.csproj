@@ -7,7 +7,7 @@
         <PlatformTarget>x64</PlatformTarget>
         <RootNamespace>LoveYuri</RootNamespace>
         <AssemblyName>love-yuri.NetToolkit</AssemblyName>
-        <Version>1.0.3</Version>
+        <Version>1.0.4</Version>
         <Authors>love-yuri</Authors>
         <Description>基于.net8.0构建的常用工具库</Description>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>
@@ -38,7 +38,7 @@
         <PackageReference Include="Dapper" Version="2.1.66" />
 
         <!-- 日志 -->
-        <PackageReference Include="love-yuri.Logger" Version="1.0.2" />
+        <PackageReference Include="love-yuri.Logger" Version="1.0.3" />
     </ItemGroup>
 
 </Project>

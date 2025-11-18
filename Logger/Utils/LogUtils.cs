@@ -2,6 +2,9 @@ using System.Runtime.InteropServices;
 
 namespace LoveYuri.Utils;
 
+/// <summary>
+/// 写入模式
+/// </summary>
 public enum WriteMode : byte {
     /// 仅写入控制台
     WriteInConsole = 0x01,

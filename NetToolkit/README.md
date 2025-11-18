@@ -3,6 +3,15 @@
 
 基于 .net8 提供常用的工具
 
+### 1.0.4
+1. 升级日志库版本为1.0.3
+2. 拆分UpdateQueryWrapper和QueryWrapper,并修改Query为NewQuery和NewUpdate
+3. 修改sqlite的特性到特性目录
+4. 新增sqlite的[README文档](./Doc/sqlite.md)
+5. sqlite: 移除list的insert方法，仅保留insertBatch方法
+6. sqlite: 新增replace方法
+7. sqlite: 优化实现
+
 ## 更新日志
 ### 1.0.3
 1. 修改DiService类为ServiceContainer
