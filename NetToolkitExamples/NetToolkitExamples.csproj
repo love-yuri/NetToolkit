@@ -12,4 +12,9 @@
         <ProjectReference Include="..\NetToolkit\NetToolkit.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+       <PackageReference Include="BenchmarkDotNet" Version="0.15.2" />
+      <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    </ItemGroup>
+
 </Project>
