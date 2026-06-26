@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
 using System.Text;
-using LoveYuri.Utils;
 
 namespace LoveYuri.Core.Sqlite;
 
@@ -37,24 +36,31 @@ public class QueryWrapper<T>
     internal Dictionary<string, object> Values { get; init; } = null!;
 
     /// <summary>
+    /// 参数名计数器，用于快速生成同字段的唯一参数名。
+    /// </summary>
+    protected Dictionary<string, int> ParamNameCounters { get; init; } = null!;
+
+    /// <summary>
     /// limit sql
     /// </summary>
     private string LimitSql { get; set; } = string.Empty;
 
     /// <summary>
-    /// 创建 QueryWrapper 实例
+    /// 创建查询构造器实例。
     /// </summary>
-    /// <returns>新的 QueryWrapper 实例</returns>
-    public static QueryWrapper<T> NewQuery => new() {
-        Values = new Dictionary<string, object>()
+    /// <remarks>每次访问都会返回一个新的 QueryWrapper 实例。</remarks>
+    public static QueryWrapper<T> Query => new() {
+        Values = new Dictionary<string, object>(8),
+        ParamNameCounters = new Dictionary<string, int>(8)
     };
 
     /// <summary>
-    /// 创建 UpdateQueryWrapper 实例
+    /// 创建更新构造器实例。
     /// </summary>
-    /// <returns>新的 QueryWrapper 实例</returns>
-    public static UpdateQueryWrapper<T> NewUpdate => new() {
-        Values = new Dictionary<string, object>()
+    /// <remarks>每次访问都会返回一个新的 UpdateQueryWrapper 实例。</remarks>
+    public static UpdateQueryWrapper<T> UpdateQuery => new() {
+        Values = new Dictionary<string, object>(8),
+        ParamNameCounters = new Dictionary<string, int>(8)
     };
 
     /// <summary>
@@ -80,13 +86,13 @@ public class QueryWrapper<T>
     }
 
     /// <summary>
-    /// 在缓存里获取字段名
+    /// 从表达式中获取字段名
     /// </summary>
     /// <param name="expression"></param>
     /// <typeparam name="TProperty"></typeparam>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
-    protected static string GetFieldNameCached<TProperty>(Expression<Func<T, TProperty>> expression)
+    private static string GetFieldNameCore<TProperty>(Expression<Func<T, TProperty>> expression)
     {
         return expression.Body switch {
             MemberExpression memberExpr => memberExpr.Member.Name,
@@ -103,7 +109,7 @@ public class QueryWrapper<T>
     /// <exception cref="ArgumentException">当表达式不是有效的属性访问时抛出</exception>
     protected static string GetFieldName<TProperty>(Expression<Func<T, TProperty>> expression)
     {
-        return GetFieldNameCached(expression);
+        return GetFieldNameCore(expression);
     }
 
     /// <summary>
@@ -115,19 +121,27 @@ public class QueryWrapper<T>
     /// <param name="logical">逻辑操作符</param>
     private void AddCondition(string fieldName, string op, object? value, LogicalOperatorType logical)
     {
-        // 生成唯一的参数名
         string paramKey = GenerateUniqueParamKey(fieldName);
+        AppendLogical(logical);
+        AppendCondition(fieldName, op, paramKey);
+        Values[paramKey] = value!;
+    }
 
-        // 添加逻辑操作符
-        if (ConditionBuilder.Length > 0) {
-            string logicalOp = logical == LogicalOperatorType.And ? "AND" : "OR";
-            ConditionBuilder.Append($" {logicalOp} ");
+    private void AppendLogical(LogicalOperatorType logical)
+    {
+        if (ConditionBuilder.Length == 0) {
+            return;
         }
 
-        // 添加条件
-        ConditionBuilder.Append($"({fieldName} {op} {paramKey})");
+        ConditionBuilder.Append(logical == LogicalOperatorType.And ? " AND " : " OR ");
+    }
 
-        Values[paramKey] = value!;
+    private void AppendCondition(string fieldName, string op, string paramKey)
+    {
+        ConditionBuilder.Append('(')
+            .Append(fieldName).Append(' ')
+            .Append(op)
+            .Append(' ').Append(paramKey).Append(')');
     }
 
     /// <summary>
@@ -137,18 +151,10 @@ public class QueryWrapper<T>
     /// <returns>唯一的参数键名</returns>
     protected string GenerateUniqueParamKey(string fieldName)
     {
-        var baseKey = $"@{fieldName}";
-        if (!Values.ContainsKey(baseKey)) {
-            return baseKey;
-        }
+        ParamNameCounters.TryGetValue(fieldName, out var index);
+        ParamNameCounters[fieldName] = index + 1;
 
-        var index = 1;
-        string key;
-        do {
-            key = $"@{fieldName}_{index++}";
-        } while (Values.ContainsKey(key));
-
-        return key;
+        return index == 0 ? $"@{fieldName}" : $"@{fieldName}_{index}";
     }
 
     #region 比较操作符
@@ -483,7 +489,8 @@ public class QueryWrapper<T>
     public QueryWrapper<T> Group(Action<QueryWrapper<T>> action, LogicalOperatorType logical = LogicalOperatorType.And)
     {
         var subWrapper = new QueryWrapper<T> {
-            Values = Values
+            Values = Values,
+            ParamNameCounters = ParamNameCounters
         };
         action.Invoke(subWrapper);
         if (subWrapper.ConditionBuilder.Length > 0) {
@@ -512,7 +519,8 @@ public class QueryWrapper<T>
     public (QueryWrapper<T>, QueryWrapper<T>) Union(Action<QueryWrapper<T>> action)
     {
         var subWrapper = new QueryWrapper<T> {
-            Values = Values
+            Values = Values,
+            ParamNameCounters = ParamNameCounters
         };
         action.Invoke(subWrapper);
 
@@ -556,7 +564,7 @@ public class QueryWrapper<T>
         if (orderByBuilder.Length > 0) {
             orderByBuilder.Append(", ");
         }
-        orderByBuilder.Append($"{fieldName} ASC");
+        orderByBuilder.Append(fieldName).Append(" ASC");
         return this;
     }
 
@@ -578,7 +586,7 @@ public class QueryWrapper<T>
         if (orderByBuilder.Length > 0) {
             orderByBuilder.Append(", ");
         }
-        orderByBuilder.Append($"{fieldName} DESC");
+        orderByBuilder.Append(fieldName).Append(" DESC");
         return this;
     }
 

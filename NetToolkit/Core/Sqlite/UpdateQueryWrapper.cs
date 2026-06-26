@@ -15,10 +15,16 @@ public class UpdateQueryWrapper<T>: QueryWrapper<T> {
     private readonly StringBuilder setClauseBuilder = new();
 
     /// <summary>
-    /// 创建 QueryWrapper 实例
+    /// 更新构造器不提供查询入口，请从 QueryWrapper&lt;T&gt; 创建。
     /// </summary>
-    /// <returns>新的 QueryWrapper 实例</returns>
-    public new static QueryWrapper<T> NewQuery => throw new Exception("查询请使用: QueryWrapper<T>.Query");
+    [Obsolete("请使用 QueryWrapper<T>.Query。", true)]
+    public new static QueryWrapper<T> Query => throw new NotSupportedException("请使用 QueryWrapper<T>.Query。");
+
+    /// <summary>
+    /// 更新构造器不提供更新入口，请从 QueryWrapper&lt;T&gt; 创建。
+    /// </summary>
+    [Obsolete("请使用 QueryWrapper<T>.UpdateQuery。", true)]
+    public new static UpdateQueryWrapper<T> UpdateQuery => throw new NotSupportedException("请使用 QueryWrapper<T>.UpdateQuery。");
 
     /// <summary>
     /// 更新 某个字段
@@ -40,7 +46,7 @@ public class UpdateQueryWrapper<T>: QueryWrapper<T> {
             setClauseBuilder.Append(',');
         }
 
-        setClauseBuilder.Append($"{fieldName} = {key}");
+        setClauseBuilder.Append(fieldName).Append(" = ").Append(key);
         Values[key] = value!;
 
         return this;

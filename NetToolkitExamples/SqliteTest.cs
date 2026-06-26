@@ -1,8 +1,5 @@
-﻿using System.Collections.Concurrent;
-using System.Linq.Expressions;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using BenchmarkDotNet.Attributes;
+﻿using BenchmarkDotNet.Attributes;
+using Dapper;
 using LoveYuri.Core.Sqlite;
 
 namespace NetToolkitExamples;
@@ -10,50 +7,147 @@ namespace NetToolkitExamples;
 [MemoryDiagnoser, MarkdownExporter]
 public class CacheComparisonBenchmark
 {
-    private static readonly MemberInfo _member = typeof(FullEoData).GetProperty("ApIndex");
-    private static readonly ConcurrentDictionary<MemberInfo, string> _concurrentDict = new();
-    private static readonly ConditionalWeakTable<MemberInfo, string> _weakTable = new();
+    private const int HvValue = 1000;
+    private const int MissingHvValue = -1;
 
-    private Expression<Func<FullEoData, int>> expression = k => k.Hv;
+    private int totalCount;
+    private int hvCount;
 
-    // [Benchmark]
-    // public string ConcurrentDictionaryLookup()
-    // {
-    //     // 需要：哈希计算 + 锁竞争 + 内存屏障
-    //     return _concurrentDict.GetOrAdd(expression.b_member, m => m.Name);
-    // }
-
-    [Benchmark]
-    public async Task SelectAll()
+    [GlobalSetup]
+    public void GlobalSetup()
     {
-        await QueryWrapper<FullEoData>.NewQuery
-            .SelectAsync();
+        using var connection = SqliteService.CreateConnection(FullEoData.DatabaseName);
+        totalCount = connection.ExecuteScalar<int>($"select count(*) from {FullEoData.TableName}");
+        hvCount = connection.ExecuteScalar<int>(
+            $"select count(*) from {FullEoData.TableName} where Hv = @Hv",
+            new { Hv = HvValue });
+
+        ValidateBuildSql();
+        ValidateSelectAndCount();
+        ValidateRepeatedParameterNames();
+        ValidateUpdateSql();
     }
 
     [Benchmark]
-    public async Task EqSelect ()
+    public string BuildSingleConditionSql()
     {
-        await QueryWrapper<FullEoData>.NewQuery
-            .Eq(k => k.Hv, 1000)
-            .Eq(k => k.Hv, 1000)
-            .Eq(k => k.Hv, 1000)
-            .Eq(k => k.Hv, 1000)
-            .SelectAsync();
+        return QueryWrapper<FullEoData>.Query
+            .Eq(k => k.Hv, HvValue)
+            .BuildSql();
     }
 
     [Benchmark]
-    public async Task EqSelect2 ()
+    public string BuildRepeatedConditionSql()
     {
-        await QueryWrapper<FullEoData>.NewQuery
-            .SelectAsync();
+        return QueryWrapper<FullEoData>.Query
+            .Eq(k => k.Hv, HvValue)
+            .Eq(k => k.Hv, HvValue)
+            .Eq(k => k.Hv, HvValue)
+            .Eq(k => k.Hv, HvValue)
+            .BuildSql();
     }
 
-    // [Benchmark]
-    // public string DirectAccessNoCache()
-    // {
-    //     return _member.Name;  // 纯反射开销
-    // }
-    //
+    [Benchmark]
+    public int CountAll()
+    {
+        return QueryWrapper<FullEoData>.Query.Count();
+    }
 
+    [Benchmark]
+    public int CountByHv()
+    {
+        return QueryWrapper<FullEoData>.Query
+            .Eq(k => k.Hv, HvValue)
+            .Count();
+    }
 
+    [Benchmark]
+    public int SelectByHv()
+    {
+        return QueryWrapper<FullEoData>.Query
+            .Eq(k => k.Hv, HvValue)
+            .Select()
+            .Count;
+    }
+
+    [Benchmark]
+    public int SelectMissingByRepeatedHv()
+    {
+        return QueryWrapper<FullEoData>.Query
+            .Eq(k => k.Hv, HvValue)
+            .Eq(k => k.Hv, MissingHvValue)
+            .Select()
+            .Count;
+    }
+
+    private static void ValidateBuildSql()
+    {
+        var sql = QueryWrapper<FullEoData>.Query
+            .Eq(k => k.Hv, HvValue)
+            .OrderByDesc(k => k.ApIndex)
+            .Limit(10, 20)
+            .BuildSql();
+
+        const string expected = "where ((Hv = @Hv)) ORDER BY ApIndex DESC limit 10 offset 20 ";
+        if (sql != expected) {
+            throw new InvalidOperationException($"BuildSql校验失败。Expected: {expected}; Actual: {sql}");
+        }
+    }
+
+    private void ValidateSelectAndCount()
+    {
+        var wrapperCountAll = QueryWrapper<FullEoData>.Query.Count();
+        if (wrapperCountAll != totalCount) {
+            throw new InvalidOperationException($"CountAll校验失败。Expected: {totalCount}; Actual: {wrapperCountAll}");
+        }
+
+        var wrapperCount = QueryWrapper<FullEoData>.Query
+            .Eq(k => k.Hv, HvValue)
+            .Count();
+        if (wrapperCount != hvCount) {
+            throw new InvalidOperationException($"CountByHv校验失败。Expected: {hvCount}; Actual: {wrapperCount}");
+        }
+
+        var selectedCount = QueryWrapper<FullEoData>.Query
+            .Eq(k => k.Hv, HvValue)
+            .Select()
+            .Count;
+        if (selectedCount != hvCount) {
+            throw new InvalidOperationException($"SelectByHv校验失败。Expected: {hvCount}; Actual: {selectedCount}");
+        }
+    }
+
+    private static void ValidateRepeatedParameterNames()
+    {
+        var sql = QueryWrapper<FullEoData>.Query
+            .Eq(k => k.Hv, HvValue)
+            .Eq(k => k.Hv, MissingHvValue)
+            .BuildSql();
+
+        const string expected = "where ((Hv = @Hv) AND (Hv = @Hv_1))";
+        if (sql != expected) {
+            throw new InvalidOperationException($"重复参数名校验失败。Expected: {expected}; Actual: {sql}");
+        }
+
+        var rows = QueryWrapper<FullEoData>.Query
+            .Eq(k => k.Hv, HvValue)
+            .Eq(k => k.Hv, MissingHvValue)
+            .Select();
+        if (rows.Count != 0) {
+            throw new InvalidOperationException($"重复参数查询校验失败。Expected: 0; Actual: {rows.Count}");
+        }
+    }
+
+    private static void ValidateUpdateSql()
+    {
+        var sql = QueryWrapper<FullEoData>.UpdateQuery
+            .Set(k => k.Hv, HvValue)
+            .Eq(k => k.ApIndex, 1)
+            .BuildSql(BuildSqlType.Update);
+
+        const string expected = "Hv = @Hv where ((ApIndex = @ApIndex))";
+        if (sql != expected) {
+            throw new InvalidOperationException($"UpdateSql校验失败。Expected: {expected}; Actual: {sql}");
+        }
+    }
 }

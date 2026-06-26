@@ -3,6 +3,13 @@
 
 基于 .net8 提供常用的工具
 
+### 1.0.5
+1. sqlite: 查询入口优化为 `QueryWrapper<T>.Query` 和 `QueryWrapper<T>.UpdateQuery`
+2. sqlite: 禁止从 `UpdateQueryWrapper<T>` 访问查询/更新工厂入口，避免误用
+3. sqlite: 优化重复条件参数名生成
+4. sqlite: 降低查询条件 SQL 片段拼接时的临时字符串分配
+5. sqlite: 更新文档为当前本地 sqlite API 用法
+
 ### 1.0.4
 1. 升级日志库版本为1.0.3
 2. 拆分UpdateQueryWrapper和QueryWrapper,并修改Query为NewQuery和NewUpdate

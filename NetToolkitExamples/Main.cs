@@ -10,7 +10,7 @@ Serilog.Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()    // 输出到控制台
     .CreateLogger();
 
-// BenchmarkRunner.Run<LogTest>();
+// BenchmarkRunner.Run<CacheComparisonBenchmark>();
 // return 0;
 
 var stopWatch = Stopwatch.StartNew();
